@@ -35,3 +35,7 @@ elif mode == "My Journal":
         st.markdown(f"> {opinion}")
         st.markdown(f"_Added on {created_at}_")
         st.markdown("---")
+    if st.button('Edit 🖋️'):
+        st.write("Edit functionality is still under development.")
+    # also add delete button here in the future
+    # also add delete all button here in the future
