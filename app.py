@@ -1,4 +1,8 @@
 import streamlit as st
+from support import init_db, add_entry
+import sqlite3
+
+init_db()
 
 st.title("Daily Song Journal")
 
@@ -16,6 +20,7 @@ if mode == "Journal a Song":
     if st.button("Add to Journal"):
         if song_name and artist_name and opinion:
             st.success(f"Added '{song_name}' by {artist_name} to your journal!")
-            # Here you would typically save the entry to a database or file
+            add_entry(song_name, artist_name, opinion)
         else:
             st.error("Please fill in all fields before adding to the journal.")
+        
