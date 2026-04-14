@@ -1,7 +1,7 @@
 # Daily-Song-Journal
 A tiny app where users log one song per day.
 
-# Raw Idea
+# Raw Idea - trying to implement
 Daily Song Journal
 A tiny app where users log one song per day.
 Core features:
