@@ -9,7 +9,7 @@ st.title("Daily Song Journal")
 st.set_page_config(page_title="Daily Song Journal", page_icon=":musical_note:", layout="wide")
 
 st.sidebar.header("Mode")
-mode = st.sidebar.selectbox("Mode", ["Journal a Song"])
+mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal"])
 
 if mode == "Journal a Song":
     st.header("Journal Entry")
@@ -23,4 +23,8 @@ if mode == "Journal a Song":
             add_entry(song_name, artist_name, opinion)
         else:
             st.error("Please fill in all fields before adding to the journal.")
-        
+elif mode == "My Journal":
+    st.header("My Journal")
+    st.subheader("View your journal entries")
+    st.write("Still under development")
+    
