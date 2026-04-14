@@ -27,3 +27,10 @@ def add_entry(song, artist, opinion):
     conn.commit()
     conn.close()
 
+def get_entries():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('SELECT song, artist, opinion, created_at FROM journals ORDER BY created_at DESC')
+    entries = c.fetchall()
+    conn.close()
+    return entries
