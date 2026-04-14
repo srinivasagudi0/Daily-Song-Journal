@@ -1,5 +1,5 @@
 import streamlit as st
-from support import init_db, add_entry
+from support import init_db, add_entry, get_entries
 import sqlite3
 
 init_db()
@@ -27,4 +27,11 @@ elif mode == "My Journal":
     st.header("My Journal")
     st.subheader("View your journal entries")
     st.write("Still under development")
-    
+    entries = get_entries()
+    for entry in entries:
+        song, artist, opinion, created_at = entry
+        st.markdown("---")
+        st.markdown(f"**{song}** by *{artist}*")
+        st.markdown(f"> {opinion}")
+        st.markdown(f"_Added on {created_at}_")
+        st.markdown("---")
