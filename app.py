@@ -1,5 +1,5 @@
 import streamlit as st
-from support import init_db, add_entry, get_entries
+from support import init_db, add_entry, get_entries, edit_entry
 import sqlite3
 
 init_db()
@@ -29,13 +29,19 @@ elif mode == "My Journal":
     st.write("Still under development")
     entries = get_entries()
     for entry in entries:
-        song, artist, opinion, created_at = entry
+        entry_id, song, artist, opinion, created_at = entry
         st.markdown("---")
+        st.markdown(f"**Entry ID: {entry_id}**")
         st.markdown(f"**{song}** by *{artist}*")
         st.markdown(f"> {opinion}")
         st.markdown(f"_Added on {created_at}_")
         st.markdown("---")
-    if st.button('Edit 🖋️'):
-        st.write("Edit functionality is still under development.")
+    # really hard to edit entries, need to add edit button here in the future
+    if st.button("Edit Entry"):
+        st.write("Editing entries is still under development.")
+    
+    if st.button("Delete Entry"):
+        st.write("Deleting entries is still under development.")
+
     # also add delete button here in the future
     # also add delete all button here in the future
