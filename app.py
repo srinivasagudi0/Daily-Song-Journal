@@ -79,4 +79,10 @@ elif mode == "Calendar View":
         },
         "initialView": "dayGridMonth",
     }
-    
+    state = calendar(
+    options=calender_options,
+    key="my_calendar",
+    )
+
+    # make it appearr
+    st.write(state)
