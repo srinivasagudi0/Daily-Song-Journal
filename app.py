@@ -11,10 +11,13 @@ init_db()
 st.title("Daily Song Journal")
 
 st.sidebar.header("Mode")
-mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal", "Calendar View"])
+mode = st.sidebar.selectbox("Mode", ["Home","Journal a Song", "My Journal", "Calendar View"])
 
 # Journal (Create)
-if mode == "Journal a Song":
+if mode == "Home":
+    pass
+
+elif mode == "Journal a Song":
     st.header("Journal Entry")
     st.subheader("Add a new song to your journal")
     song_name = st.text_input("Song Name")
