@@ -79,8 +79,21 @@ elif mode == "Calendar View":
         },
         "initialView": "dayGridMonth",
     }
+    entries = get_entries()
+    calendar_events = []
+    for entry in entries:
+        entry_id, song, artist, opinion, created_at = entry
+        calendar_events.append({
+            "id": entry_id,
+            "title": f"{song} by {artist}",
+            "start": created_at,
+            "description": opinion,
+        })
+
+
     state = calendar(
     options=calender_options,
+    events=calendar_events,
     key="my_calendar",
     )
 
