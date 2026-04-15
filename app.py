@@ -65,3 +65,8 @@ elif mode == "My Journal":
         delete_entry(None)
         st.success("Deleted all journal entries.")
 
+elif mode == "Calendar View":
+    st.header("Calendar View")
+    st.subheader("Visualize your journal entries on a calendar")
+    # Placeholder for calendar visualization (not implemented in this version)
+    st.info("Calendar view is coming soon!")
