@@ -16,6 +16,11 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    existing_columns = [row[1] for row in c.execute("PRAGMA table_info(journals)")]
+    if "mood" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN mood TEXT")
+    if "note" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN note TEXT")
     conn.commit()
     conn.close()
 
