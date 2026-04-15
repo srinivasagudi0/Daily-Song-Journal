@@ -51,3 +51,17 @@ def delete_entry(entry_id):
 
     conn.commit()
     conn.close()
+
+def edit_entry(entry_id, song, artist, opinion):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute(
+        '''
+        UPDATE journals
+        SET song = ?, artist = ?, opinion = ?
+        WHERE id = ?
+        ''',
+        (song, artist, opinion, entry_id)
+    )
+    conn.commit()
+    conn.close()
