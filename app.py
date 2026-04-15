@@ -39,16 +39,19 @@ elif mode == "My Journal":
     else:
         for entry in entries:
             entry_id, song, artist, opinion, mood, note, created_at = entry
-            st.markdown("---")
-            st.markdown(f"**ID:** {entry_id}")
-            st.markdown(f"**{song}** by *{artist}*")
-            st.markdown(f"> {opinion}")
-            if mood:
+        st.markdown(f"### {song}")
+        st.markdown(f"*by {artist}*")
+        st.markdown(f"**Mood:** {mood}")
+        st.markdown(f"> {opinion}")
+        st.caption(f"Remembered on {created_at}")
+        if mood:
                 st.markdown(f"_Mood: {mood}_")
-            if note:
-                st.markdown(f"_Notes: {note}_")
-            st.markdown(f"_Added on {created_at}_")
-            st.markdown("---")
+        if note:
+            st.markdown(f"_Notes: {note}_")
+        st.markdown(f"_Added on {created_at}_")
+        st.markdown("---")
+    
+            
     
     st.subheader("Edit an Entry")
     edit_id = st.number_input("Enter the ID of the entry to edit", min_value=1, step=1)
