@@ -1,52 +1,67 @@
-import streamlit as st
-from support import delete_entry, init_db, add_entry, get_entries
+import sqlite3
 
-st.set_page_config(page_title="Daily Song Journal", page_icon=":musical_note:", layout="wide")
+db = "song_journal.db"
 
-init_db()
+def init_db():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS journals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song TEXT NOT NULL,
+            artist TEXT NOT NULL,
+            opinion TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-st.title("Daily Song Journal")
+def add_entry(song, artist, opinion):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO journals (song, artist, opinion, created_at)
+        VALUES (?, ?, ?, ?)
+    ''', (song, artist, opinion, sqlite3.datetime.datetime.now()))
+    conn.commit()
+    conn.close()
 
-st.sidebar.header("Mode")
-mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal"])
+def get_entries():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        SELECT id, song, artist, opinion, created_at
+        FROM journals
+        ORDER BY created_at DESC
+    ''')
+    entries = c.fetchall()
+    conn.close()
+    return entries
 
-if mode == "Journal a Song":
-    st.header("Journal Entry")
-    st.subheader("Add a new song to your journal")
-    song_name = st.text_input("Song Name")
-    artist_name = st.text_input("Artist Name")
-    opinion = st.text_area("Your Opinion")
-    if st.button("Add to Journal"):
-        if song_name and artist_name and opinion:
-            st.success(f"Added '{song_name}' by {artist_name} to your journal!")
-            add_entry(song_name, artist_name, opinion)
-        else:
-            st.error("Please fill in all fields before adding to the journal.")
-elif mode == "My Journal":
-    st.header("My Journal")
-    st.subheader("View your journal entries")
-    entries = get_entries()
-    if not entries:
-        st.info("No journal entries yet.")
+def delete_entry(entry_id):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    # No ID means the user wants a clean slate.
+    if entry_id is None:
+        c.execute("DELETE FROM journals")
     else:
-        for entry in entries:
-            entry_id, song, artist, opinion, created_at = entry
-            st.markdown("---")
-            st.markdown(f"**ID:** {entry_id}")
-            st.markdown(f"**{song}** by *{artist}*")
-            st.markdown(f"> {opinion}")
-            st.markdown(f"_Added on {created_at}_")
-            st.markdown("---")
-    
-    # really hard to edit entries, need to add edit button here in the future
-    if st.button("Edit Entry"):
-        st.write("Editing entries is still under development.")
-    
-    delete_id = st.number_input("Enter the ID of the entry to delete", min_value=1, step=1)
-    if st.button("Delete Entry"):
-        delete_entry(delete_id)
-        st.success(f"Deleted entry with ID {delete_id} from your journal.")
+        c.execute("DELETE FROM journals WHERE id = ?", (entry_id,))
 
-    if st.button("Delete All Entries"):
-        delete_entry(None)
-        st.success("Deleted all journal entries.")
+    conn.commit()
+    conn.close()
+
+def edit_entry(entry_id, song, artist, opinion):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute(
+        '''
+        UPDATE journals
+        SET song = ?, artist = ?, opinion = ?
+        WHERE id = ?
+        ''',
+        (song, artist, opinion, entry_id)
+    )
+    conn.commit()
+    conn.close()
