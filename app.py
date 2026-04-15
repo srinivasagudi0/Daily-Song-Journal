@@ -18,8 +18,6 @@ if mode == "Home":
     st.header("Welcome to the Daily Song Journal!")
     st.subheader("Your personal space to reflect on the songs that move you.")  
 
-
-
 # Journal (Create)
 elif mode == "Journal a Song":
     st.header("Journal Entry")
