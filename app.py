@@ -13,10 +13,14 @@ st.title("Daily Song Journal")
 st.sidebar.header("Mode")
 mode = st.sidebar.selectbox("Mode", ["Home","Journal a Song", "My Journal", "Calendar View"])
 
-# Journal (Create)
+# Home, dont know what to add here, maybe some instructions or something, but for now it will just be a welcome message. I will add more later if I get inspiration.
 if mode == "Home":
-    pass
+    st.header("Welcome to the Daily Song Journal!")
+    st.subheader("Your personal space to reflect on the songs that move you.")  
 
+
+
+# Journal (Create)
 elif mode == "Journal a Song":
     st.header("Journal Entry")
     st.subheader("Add a new song to your journal")
