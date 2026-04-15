@@ -1,67 +1,61 @@
-import sqlite3
+import streamlit as st
+from support import delete_entry, edit_entry, init_db, add_entry, get_entries
 
-db = "song_journal.db"
+st.set_page_config(page_title="Daily Song Journal", page_icon=":musical_note:", layout="wide")
 
-def init_db():
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS journals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            song TEXT NOT NULL,
-            artist TEXT NOT NULL,
-            opinion TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+init_db()
 
-def add_entry(song, artist, opinion):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO journals (song, artist, opinion, created_at)
-        VALUES (?, ?, ?, ?)
-    ''', (song, artist, opinion, sqlite3.datetime.datetime.now()))
-    conn.commit()
-    conn.close()
+st.title("Daily Song Journal")
 
-def get_entries():
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute('''
-        SELECT id, song, artist, opinion, created_at
-        FROM journals
-        ORDER BY created_at DESC
-    ''')
-    entries = c.fetchall()
-    conn.close()
-    return entries
+st.sidebar.header("Mode")
+mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal"])
 
-def delete_entry(entry_id):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-
-    # No ID means the user wants a clean slate.
-    if entry_id is None:
-        c.execute("DELETE FROM journals")
+if mode == "Journal a Song":
+    st.header("Journal Entry")
+    st.subheader("Add a new song to your journal")
+    song_name = st.text_input("Song Name")
+    artist_name = st.text_input("Artist Name")
+    opinion = st.text_area("Your Opinion")
+    if st.button("Add to Journal"):
+        if song_name and artist_name and opinion:
+            st.success(f"Added '{song_name}' by {artist_name} to your journal!")
+            add_entry(song_name, artist_name, opinion)
+        else:
+            st.error("Please fill in all fields before adding to the journal.")
+elif mode == "My Journal":
+    st.header("My Journal")
+    st.subheader("View your journal entries")
+    entries = get_entries()
+    if not entries:
+        st.info("No journal entries yet.")
     else:
-        c.execute("DELETE FROM journals WHERE id = ?", (entry_id,))
+        for entry in entries:
+            entry_id, song, artist, opinion, created_at = entry
+            st.markdown("---")
+            st.markdown(f"**ID:** {entry_id}")
+            st.markdown(f"**{song}** by *{artist}*")
+            st.markdown(f"> {opinion}")
+            st.markdown(f"_Added on {created_at}_")
+            st.markdown("---")
+    
+    st.subheader("Edit an Entry")
+    edit_id = st.number_input("Enter the ID of the entry to edit", min_value=1, step=1)
+    edit_song = st.text_input("New Song Name")
+    edit_artist = st.text_input("New Artist Name")
+    edit_opinion = st.text_area("New Opinion")
 
-    conn.commit()
-    conn.close()
+    if st.button("Update Entry"):
+        if edit_song and edit_artist and edit_opinion:
+            edit_entry(edit_id, edit_song, edit_artist, edit_opinion)
+            st.success(f"Updated entry with ID {edit_id}.")
+        else:
+            st.error("Please fill in all fields before updating.")
+    
+    delete_id = st.number_input("Enter the ID of the entry to delete", min_value=1, step=1)
+    if st.button("Delete Entry"):
+        delete_entry(delete_id)
+        st.success(f"Deleted entry with ID {delete_id} from your journal.")
 
-def edit_entry(entry_id, song, artist, opinion):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute(
-        '''
-        UPDATE journals
-        SET song = ?, artist = ?, opinion = ?
-        WHERE id = ?
-        ''',
-        (song, artist, opinion, entry_id)
-    )
-    conn.commit()
-    conn.close()
+    if st.button("Delete All Entries"):
+        delete_entry(None)
+        st.success("Deleted all journal entries.")
