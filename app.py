@@ -1,5 +1,6 @@
 import streamlit as st
 from support import delete_entry, edit_entry, init_db, add_entry, get_entries
+from streamlit_calendar import calendar
 
 # Simple CRUD app.
 st.set_page_config(page_title="Daily Song Journal", page_icon=":musical_note:", layout="wide")
@@ -10,7 +11,7 @@ init_db()
 st.title("Daily Song Journal")
 
 st.sidebar.header("Mode")
-mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal"])
+mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal", "Calendar View"])
 
 # Journal (Create)
 if mode == "Journal a Song":
@@ -67,6 +68,15 @@ elif mode == "My Journal":
 
 elif mode == "Calendar View":
     st.header("Calendar View")
-    st.subheader("Visualize your journal entries on a calendar")
-    # Placeholder for calendar visualization (not implemented in this version)
-    st.info("Calendar view is coming soon!")
+    # cannot be edited (that is a feature and it would be a nightmare to implement it, so I will just make it non editable)
+    calender_options = {
+        "editable": "false",
+        "selectable": "true",
+        "headerToolbar": {
+            "left": "today prev,next",
+            "center": "title",
+            "right": "dayGridMonth,dayGridWeek,dayGridDay",
+        },
+        "initialView": "dayGridMonth",
+    }
+    
