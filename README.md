@@ -5,6 +5,7 @@ A tiny app where users log one song per day.
 Daily Song Journal
 A tiny app where users log one song per day.
 Core features:
+
 ~~Add a song (title + artist)~~
 Optional mood or note
 * Calendar view of past songs
