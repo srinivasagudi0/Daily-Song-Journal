@@ -30,7 +30,24 @@ def add_entry(song, artist, opinion):
 def get_entries():
     conn = sqlite3.connect(db)
     c = conn.cursor()
-    c.execute('SELECT song, artist, opinion, created_at FROM journals ORDER BY created_at DESC')
+    c.execute('''
+        SELECT id, song, artist, opinion, created_at
+        FROM journals
+        ORDER BY created_at DESC
+    ''')
     entries = c.fetchall()
     conn.close()
     return entries
+
+def delete_entry(entry_id):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    # No ID means the user wants a clean slate.
+    if entry_id is None:
+        c.execute("DELETE FROM journals")
+    else:
+        c.execute("DELETE FROM journals WHERE id = ?", (entry_id,))
+
+    conn.commit()
+    conn.close()
