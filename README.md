@@ -8,13 +8,13 @@ Core features:
 
 ~~Add a song (title + artist)~~
 
-Optional mood or note
+~~Optional mood or note~~
 
 ~~Calendar view of past songs~~
 
 Why it’s good:
 
-* Super simple CRUD app
+~~Super simple CRUD app~~
 
 * Feels personal and meaningful
 
