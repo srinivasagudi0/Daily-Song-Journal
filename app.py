@@ -1,8 +1,10 @@
 import streamlit as st
 from support import delete_entry, edit_entry, init_db, add_entry, get_entries
 
+# Simple CRUD app.
 st.set_page_config(page_title="Daily Song Journal", page_icon=":musical_note:", layout="wide")
 
+# set up db so it wont mess up when we run the app for the first time, becasue first impeersion is the best impreression.
 init_db()
 
 st.title("Daily Song Journal")
@@ -10,6 +12,7 @@ st.title("Daily Song Journal")
 st.sidebar.header("Mode")
 mode = st.sidebar.selectbox("Mode", ["Journal a Song", "My Journal"])
 
+# Journal (Create)
 if mode == "Journal a Song":
     st.header("Journal Entry")
     st.subheader("Add a new song to your journal")
@@ -22,6 +25,8 @@ if mode == "Journal a Song":
             add_entry(song_name, artist_name, opinion)
         else:
             st.error("Please fill in all fields before adding to the journal.")
+
+# View/Edit/Delete (Read/Update/Delete)
 elif mode == "My Journal":
     st.header("My Journal")
     st.subheader("View your journal entries")
@@ -59,3 +64,4 @@ elif mode == "My Journal":
     if st.button("Delete All Entries"):
         delete_entry(None)
         st.success("Deleted all journal entries.")
+
