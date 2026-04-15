@@ -20,10 +20,12 @@ if mode == "Journal a Song":
     song_name = st.text_input("Song Name")
     artist_name = st.text_input("Artist Name")
     opinion = st.text_area("Your Opinion")
+    mood = st.selectbox("Mood", ["Happy", "Sad", "Energetic", "Relaxed", "Other"])
+    note = st.text_area("Additional Notes (optional)")
     if st.button("Add to Journal"):
         if song_name and artist_name and opinion:
             st.success(f"Added '{song_name}' by {artist_name} to your journal!")
-            add_entry(song_name, artist_name, opinion)
+            add_entry(song_name, artist_name, opinion, mood, note)
         else:
             st.error("Please fill in all fields before adding to the journal.")
 
@@ -36,11 +38,15 @@ elif mode == "My Journal":
         st.info("No journal entries yet.")
     else:
         for entry in entries:
-            entry_id, song, artist, opinion, created_at = entry
+            entry_id, song, artist, opinion, mood, note, created_at = entry
             st.markdown("---")
             st.markdown(f"**ID:** {entry_id}")
             st.markdown(f"**{song}** by *{artist}*")
             st.markdown(f"> {opinion}")
+            if mood:
+                st.markdown(f"_Mood: {mood}_")
+            if note:
+                st.markdown(f"_Notes: {note}_")
             st.markdown(f"_Added on {created_at}_")
             st.markdown("---")
     
@@ -49,10 +55,12 @@ elif mode == "My Journal":
     edit_song = st.text_input("New Song Name")
     edit_artist = st.text_input("New Artist Name")
     edit_opinion = st.text_area("New Opinion")
+    edit_mood = st.selectbox("New Mood", ["Happy", "Sad", "Energetic", "Relaxed", "Other"])
+    edit_note = st.text_area("New Additional Notes (optional)")
 
     if st.button("Update Entry"):
         if edit_song and edit_artist and edit_opinion:
-            edit_entry(edit_id, edit_song, edit_artist, edit_opinion)
+            edit_entry(edit_id, edit_song, edit_artist, edit_opinion, edit_mood, edit_note)
             st.success(f"Updated entry with ID {edit_id}.")
         else:
             st.error("Please fill in all fields before updating.")
@@ -66,6 +74,7 @@ elif mode == "My Journal":
         delete_entry(None)
         st.success("Deleted all journal entries.")
 
+# Calendar View (Read)
 elif mode == "Calendar View":
     st.header("Calendar View")
     # cannot be edited (that is a feature and it would be a nightmare to implement it, so I will just make it non editable)
@@ -82,7 +91,7 @@ elif mode == "Calendar View":
     entries = get_entries()
     calendar_events = []
     for entry in entries:
-        entry_id, song, artist, opinion, created_at = entry
+        entry_id, song, artist, opinion, mood, note, created_at = entry
         calendar_events.append({
             "id": entry_id,
             "title": f"{song} by {artist}",
