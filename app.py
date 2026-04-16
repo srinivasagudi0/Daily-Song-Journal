@@ -1,5 +1,5 @@
 import streamlit as st
-from support import delete_entry, edit_entry, init_db, add_entry, get_entries
+from support import delete_entry, edit_entry, init_db, add_entry, get_entries, get_streak
 from streamlit_calendar import calendar
 
 # Simple CRUD app.
@@ -16,7 +16,8 @@ mode = st.sidebar.selectbox("Mode", ["Home","Journal a Song", "My Journal", "Cal
 # Home, dont know what to add here, maybe some instructions or something, but for now it will just be a welcome message. I will add more later if I get inspiration.
 if mode == "Home":
     st.header("Welcome to My Daily Soundtrack")
-    st.subheader("A quiet place for the songs that stayed with you.")  
+    st.subheader("A quiet place for the songs that stayed with you.")
+    
 
 # Journal (Create)
 elif mode == "Journal a Song":
@@ -93,13 +94,12 @@ elif mode == "My Journal":
 
 # Calendar View (Read)
 elif mode == "Calendar View":
-    # add a streak counter, that counts how many days in a row the user has journaled, and display it on the home page, maybe with a little confetti animation when they reach a new streak record. I will need to store the last journal date and the current streak count in the database, and update it whenever a new entry is added.   
-    streak = 0
-    st.write("Current Streak: " + str(streak))
-
-
-
     st.header("Calendar View")
+    # add streak counter, because why not, it is a nice feature to have and it is not that hard to implement, I just need to check how many consecutive days the user has added entries for, and then display that number in a nice way.
+    
+    streak = get_streak()
+    streak_label = "day" if streak == 1 else "days"
+    st.metric("Current streak", f"{streak} {streak_label}")
     # cannot be edited (that is a feature and it would be a nightmare to implement it, so I will just make it non editable)
     calender_options = {
         "editable": "false",
