@@ -93,6 +93,12 @@ elif mode == "My Journal":
 
 # Calendar View (Read)
 elif mode == "Calendar View":
+    # add a streak counter, that counts how many days in a row the user has journaled, and display it on the home page, maybe with a little confetti animation when they reach a new streak record. I will need to store the last journal date and the current streak count in the database, and update it whenever a new entry is added.   
+    streak = 0
+    st.write("Current Streak: " + str(streak))
+
+
+
     st.header("Calendar View")
     # cannot be edited (that is a feature and it would be a nightmare to implement it, so I will just make it non editable)
     calender_options = {
