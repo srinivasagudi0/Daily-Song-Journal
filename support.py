@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta
 
 db = "song_journal.db"
 
@@ -80,3 +81,39 @@ def edit_entry(entry_id, song, artist, opinion, mood, note, reminds_me_of, is_fa
     )
     conn.commit()
     conn.close()
+
+def get_streak():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        SELECT created_at
+        FROM journals
+        ORDER BY created_at DESC
+    ''')
+    rows = c.fetchall()
+    conn.close()
+
+    logged_dates = {
+        datetime.fromisoformat(created_at).date()
+        for (created_at,) in rows
+        if created_at
+    }
+    if not logged_dates:
+        return 0
+
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+
+    if today in logged_dates:
+        current_day = today
+    elif yesterday in logged_dates:
+        current_day = yesterday
+    else:
+        return 0
+
+    streak = 0
+    while current_day in logged_dates:
+        streak += 1
+        current_day -= timedelta(days=1)
+
+    return streak
