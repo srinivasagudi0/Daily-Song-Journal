@@ -16,6 +16,6 @@ Why it’s good:
 
 ~~Super simple CRUD app~~
 
-* Feels personal and meaningful
+~~Feels personal and meaningful~~
 
 * Easy to expand later (stats, streaks, etc.)
