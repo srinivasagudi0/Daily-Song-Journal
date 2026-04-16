@@ -29,10 +29,11 @@ elif mode == "Journal a Song":
     mood = st.selectbox("What was your mood?", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
     reminds_me_of = st.text_input("Who does this song remind you of? (optional)")
     note = st.text_area("Something I want to remember (optional)")
+    is_favorite = st.checkbox("Star this song")
     if st.button("Add to Journal"):
         if song_name and artist_name and opinion:
             st.success(f"Added '{song_name}' by {artist_name} to your journal!")
-            add_entry(song_name, artist_name, opinion, mood, note, reminds_me_of)
+            add_entry(song_name, artist_name, opinion, mood, note, reminds_me_of, int(is_favorite))
         else:
             st.error("Please fill in all fields before adding to the journal.")
 
@@ -41,13 +42,17 @@ elif mode == "My Journal":
     st.header("My Journal")
     st.subheader("Songs I lived with")
     entries = get_entries()
+    show_favorites = st.checkbox("Show favorites only")
+    if show_favorites:
+        entries = [entry for entry in entries if entry[7]]
     if not entries:
         st.info("No journal entries yet.")
     else:
         for entry in entries:
-            entry_id, song, artist, opinion, mood, note, reminds_me_of, created_at = entry
+            entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
             st.caption(created_at)
-            st.markdown(f"### {song} by {artist}")
+            star = "★ " if is_favorite else ""
+            st.markdown(f"### {star}{song} by {artist}")
             if mood:
                 st.markdown(f"**Mood:** {mood}")
             st.markdown("**Why it mattered:**")
@@ -68,10 +73,11 @@ elif mode == "My Journal":
     edit_mood = st.selectbox("New mood", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
     edit_reminds_me_of = st.text_input("New person this song reminds you of (optional)")
     edit_note = st.text_area("New memory (optional)")
+    edit_is_favorite = st.checkbox("Star this song")
 
     if st.button("Update Entry"):
         if edit_song and edit_artist and edit_opinion:
-            edit_entry(edit_id, edit_song, edit_artist, edit_opinion, edit_mood, edit_note, edit_reminds_me_of)
+            edit_entry(edit_id, edit_song, edit_artist, edit_opinion, edit_mood, edit_note, edit_reminds_me_of, int(edit_is_favorite))
             st.success(f"Updated entry with ID {edit_id}.")
         else:
             st.error("Please fill in all fields before updating.")
@@ -111,10 +117,10 @@ elif mode == "Calendar View":
     entries = get_entries()
     calendar_events = []
     for entry in entries:
-        entry_id, song, artist, opinion, mood, note, reminds_me_of, created_at = entry
+        entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
         calendar_events.append({
             "id": entry_id,
-            "title": f"{mood}: {song}" if mood else song,
+            "title": f"{'★ ' if is_favorite else ''}{mood}: {song}" if mood else f"{'★ ' if is_favorite else ''}{song}",
             "start": created_at,
             "description": opinion,
             "color": mood_colors.get(mood, "#a78bfa"),
