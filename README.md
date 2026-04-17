@@ -18,4 +18,4 @@ Why it’s good:
 
 ~~Feels personal and meaningful~~
 
-* Easy to expand later (stats, streaks, etc.)
+~~* Easy to expand later (stats, streaks, etc.)~~
