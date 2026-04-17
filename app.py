@@ -120,6 +120,19 @@ elif mode == "My Journal":
             st.error("Please fill in all fields before updating.")
     
     delete_id = st.number_input("Enter the ID of the entry to delete", min_value=1, step=1)
+    
+    # download csv, because csv looks best for this type of info.
+    if st.button("Download Journal"):
+        entries = get_entries()
+        if entries:
+            csv_data = "ID,Song,Artist,Opinion,Mood,Note,Reminds Me Of,Is Favorite,Created At\n"
+            for entry in entries:
+                csv_data += ",".join(str(e) for e in entry) + "\n"
+            st.download_button("Download CSV", data=csv_data, file_name="my_daily_soundtrack.csv", mime="text/csv")
+        else:
+            st.info("No entries to download.")
+
+    
     if st.button("Delete Entry"):
         delete_entry(delete_id)
         st.success(f"Deleted entry with ID {delete_id} from your journal.")
