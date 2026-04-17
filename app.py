@@ -5,6 +5,10 @@ from streamlit_calendar import calendar
 # Simple CRUD app.
 st.set_page_config(page_title="My Daily Soundtrack", page_icon=":musical_note:", layout="wide")
 
+
+def to_lower(value):
+    return str(value or "").lower()
+
 # set up db so it wont mess up when we run the app for the first time, becasue first impeersion is the best impreression.
 init_db()
 
@@ -17,7 +21,39 @@ mode = st.sidebar.selectbox("Mode", ["Home","Journal a Song", "My Journal", "Cal
 if mode == "Home":
     st.header("Welcome to My Daily Soundtrack")
     st.subheader("A quiet place for the songs that stayed with you.")
-    
+    entries = get_entries()
+
+    search = st.text_input("Search by song, artist, or mood") # it will be able to figure it out.
+    show_favorites = st.checkbox("Show your favorites only")
+    mood_filter = st.multiselect("Filter by mood", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
+
+    filtered = entries
+    if search:
+        q = search.strip().lower()
+        filtered = [
+            e for e in filtered
+            if q in to_lower(e[1])
+            or q in to_lower(e[2])
+            or q in to_lower(e[3])
+            or q in to_lower(e[4])
+            or q in to_lower(e[5])
+            or q in to_lower(e[6])
+        ]
+    if show_favorites:
+        filtered = [e for e in filtered if e[7]]
+    if mood_filter:
+        filtered = [e for e in filtered if e[4] in mood_filter]
+
+    if not filtered:
+        st.info("No matching entries yet.")
+    else:
+        for entry in filtered:
+            entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
+            star = "★ " if is_favorite else ""
+            st.markdown(f"**{star}{song} by {artist}**")
+            st.caption(f"{mood or 'No mood'} · {created_at}")
+            st.markdown("---")
+
 
 # Journal (Create)
 elif mode == "Journal a Song":
