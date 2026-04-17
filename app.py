@@ -78,6 +78,17 @@ elif mode == "Journal a Song":
 elif mode == "My Journal":
     st.header("My Journal")
     st.subheader("Songs I lived with")
+
+    # download csv, because csv looks best for this type of info.
+    entries = get_entries()
+    if entries:
+        csv_data = "ID,Song,Artist,Opinion,Mood,Note,Reminds Me Of,Is Favorite,Created At\n"
+        for entry in entries:
+            csv_data += ",".join(str(e) for e in entry) + "\n"
+        st.download_button("Download CSV", data=csv_data, file_name="my_daily_soundtrack.csv", mime="text/csv")
+    else:
+        st.info("No entries to download.")
+        
     entries = get_entries()
     show_favorites = st.checkbox("Show favorites only")
     if show_favorites:
@@ -121,16 +132,7 @@ elif mode == "My Journal":
     
     delete_id = st.number_input("Enter the ID of the entry to delete", min_value=1, step=1)
     
-    # download csv, because csv looks best for this type of info.
-    if st.button("Download Journal"):
-        entries = get_entries()
-        if entries:
-            csv_data = "ID,Song,Artist,Opinion,Mood,Note,Reminds Me Of,Is Favorite,Created At\n"
-            for entry in entries:
-                csv_data += ",".join(str(e) for e in entry) + "\n"
-            st.download_button("Download CSV", data=csv_data, file_name="my_daily_soundtrack.csv", mime="text/csv")
-        else:
-            st.info("No entries to download.")
+    
 
     
     if st.button("Delete Entry"):
