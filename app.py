@@ -1,180 +1,195 @@
-# Simple little game hub for Streamlit.
-# I’ll probably reorganize this later once more games are added.
-
 import streamlit as st
-from support import (
-    get_fill_blank_round,
-    get_song_round,
-    is_correct_guess,
-    is_correct_word_guess,
-)
+from support import delete_entry, edit_entry, init_db, add_entry, get_entries, get_streak
+from streamlit_calendar import calendar
 
-st.title("Game Library")
-st.write("Pick a game from the sidebar to get started.")
+# Simple CRUD app.
+st.set_page_config(page_title="My Daily Soundtrack", page_icon=":musical_note:", layout="wide")
 
-# Sidebar selector
-st.sidebar.title("What game are you looking for?")
-game_choice = st.sidebar.selectbox(
-    "Select a game",
-    ["Guess the Song", "Lyric Fill-in-the-Blank"]
-)
 
-# -----------------------------
-# Guess the Song
-# -----------------------------
-if game_choice == "Guess the Song":
-    st.header("Guess the Song")
-    st.write("Read the clues and try to guess the song title.")
+def to_lower(value):
+    return str(value or "").lower()
 
-    # Session state init
-    if "song_round" not in st.session_state:
-        st.session_state.song_round = get_song_round()
-        st.session_state.revealed = False
-        st.session_state.correct_this_round = False
+# set up db so it wont mess up when we run the app for the first time, becasue first impeersion is the best impreression.
+init_db()
 
-    if "score" not in st.session_state:
-        st.session_state.score = 0
+st.title("My Daily Soundtrack")
 
-    def new_round():
-        # Reset everything for a fresh song
-        st.session_state.song_round = get_song_round()
-        st.session_state.revealed = False
-        st.session_state.correct_this_round = False
-        st.session_state.guess = ""
+st.sidebar.header("Mode")
+mode = st.sidebar.selectbox("Mode", ["Home","Journal a Song", "My Journal", "Calendar View"])
 
-    # Controls + score
-    col_a, col_b = st.columns([1, 2])
-    with col_a:
-        st.button("New Song", on_click=new_round)
-    with col_b:
-        st.caption(f"Score: {st.session_state.score}")
+# Home, dont know what to add here, maybe some instructions or something, but for now it will just be a welcome message. I will add more later if I get inspiration.
+if mode == "Home":
+    st.header("Welcome to My Daily Soundtrack")
+    st.subheader("A quiet place for the songs that stayed with you.")
+    entries = get_entries()
 
-    # Show the clue
-    st.write(st.session_state.song_round["clue"])
+    search = st.text_input("Search by song, artist, or mood") # it will be able to figure it out.
+    show_favorites = st.checkbox("Show your favorites only")
+    mood_filter = st.multiselect("Filter by mood", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
 
-    # Input for guess
-    st.text_input(
-        "Your guess (song title)",
-        key="guess",
-        placeholder="Type the song title…"
-    )
+    filtered = entries
+    if search:
+        q = search.strip().lower()
+        filtered = [
+            e for e in filtered
+            if q in to_lower(e[1])
+            or q in to_lower(e[2])
+            or q in to_lower(e[3])
+            or q in to_lower(e[4])
+            or q in to_lower(e[5])
+            or q in to_lower(e[6])
+        ]
+    if show_favorites:
+        filtered = [e for e in filtered if e[7]]
+    if mood_filter:
+        filtered = [e for e in filtered if e[4] in mood_filter]
 
-    # Buttons
-    check_col, reveal_col = st.columns(2)
-
-    with check_col:
-        if st.button("Check Guess"):
-            answer_title = st.session_state.song_round["answer_title"]
-            if is_correct_guess(st.session_state.guess, answer_title):
-                if not st.session_state.correct_this_round:
-                    st.session_state.score += 1
-                    st.session_state.correct_this_round = True
-                st.success("Correct!")
-            else:
-                st.error("Not quite. Try again or reveal the answer.")
-
-    with reveal_col:
-        if st.button("Reveal Answer"):
-            st.session_state.revealed = True
-
-    # Reveal section
-    if st.session_state.revealed:
-        title = st.session_state.song_round["answer_title"]
-        artist = st.session_state.song_round["answer_artist"]
-        st.info(f"Answer: {title} - {artist}")
-
-# -----------------------------
-# Lyric Fill-in-the-Blank
-# -----------------------------
-if game_choice == "Lyric Fill-in-the-Blank":
-    st.header("Song Lyric Fill-in-the-Blank")
-    st.write("One word is missing - type it or pick from the choices.")
-    st.caption("Demo uses public-domain lines. Add more in support.py → FILL_BLANK_ITEMS.")
-
-    # Init state for this game
-    if "fib_round" not in st.session_state:
-        st.session_state.fib_round = get_fill_blank_round()
-        st.session_state.fib_revealed = False
-        st.session_state.fib_correct_this_round = False
-
-    if "fib_score" not in st.session_state:
-        st.session_state.fib_score = 0
-
-    if "fib_method" not in st.session_state:
-        st.session_state.fib_method = "Type it"
-
-    def new_fib_round():
-        st.session_state.fib_round = get_fill_blank_round()
-        st.session_state.fib_revealed = False
-        st.session_state.fib_correct_this_round = False
-        # Clear previous guesses
-        st.session_state.pop("fib_guess", None)
-        st.session_state.pop("fib_choice", None)
-
-    # Controls + score
-    col_a, col_b = st.columns([1, 2])
-    with col_a:
-        st.button("New Lyric", on_click=new_fib_round)
-    with col_b:
-        st.caption(f"Score: {st.session_state.fib_score}")
-
-    # Show the lyric prompt
-    st.subheader("Lyric")
-    st.write(st.session_state.fib_round["prompt_line"])
-
-    # Answer method
-    st.radio(
-        "Answer method",
-        ["Type it", "Pick from choices"],
-        key="fib_method",
-        horizontal=True
-    )
-
-    # Input depending on method
-    guess_value = ""
-    if st.session_state.fib_method == "Pick from choices":
-        choices = st.session_state.fib_round.get("choices", [])
-        if choices:
-            guess_value = st.selectbox(
-                "Pick the missing word",
-                choices,
-                key="fib_choice"
-            )
-        else:
-            st.warning("No choices available for this lyric. Try typing instead.")
+    if not filtered:
+        st.info("No matching entries yet.")
     else:
-        guess_value = st.text_input(
-            "Type the missing word",
-            key="fib_guess"
-        )
+        for entry in filtered:
+            entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
+            star = "★ " if is_favorite else ""
+            st.markdown(f"**{star}{song} by {artist}**")
+            st.caption(f"{mood or 'No mood'} · {created_at}")
+            st.markdown("---")
 
-    # Buttons
-    check_col, reveal_col = st.columns(2)
 
-    with check_col:
-        if st.button("Check"):
-            answer_word = st.session_state.fib_round.get("answer_word", "")
-            if not answer_word:
-                st.error("This lyric didn't generate a blank. Try a new one.")
-            elif is_correct_word_guess(guess_value, answer_word):
-                if not st.session_state.fib_correct_this_round:
-                    st.session_state.fib_score += 1
-                    st.session_state.fib_correct_this_round = True
-                st.success("Correct!")
-            else:
-                st.error("Not quite. Try again or reveal the answer.")
+# Journal (Create)
+elif mode == "Journal a Song":
+    st.header("Journal Entry")
+    st.subheader("Add today's soundtrack")
+    st.caption("Save the song that matched your day.")
+    song_name = st.text_input("What song stayed with you today?")
+    artist_name = st.text_input("Who made it?")
+    opinion = st.text_area("Why did this song matter today?")
+    mood = st.selectbox("What was your mood?", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
+    reminds_me_of = st.text_input("Who does this song remind you of? (optional)")
+    note = st.text_area("Something I want to remember (optional)")
+    is_favorite = st.checkbox("Star this song")
+    if st.button("Add to Journal"):
+        if song_name and artist_name and opinion:
+            st.success(f"Added '{song_name}' by {artist_name} to your journal!")
+            add_entry(song_name, artist_name, opinion, mood, note, reminds_me_of, int(is_favorite))
+        else:
+            st.error("Please fill in all fields before adding to the journal.")
 
-    with reveal_col:
-        if st.button("Reveal"):
-            st.session_state.fib_revealed = True
+# View/Edit/Delete (Read/Update/Delete)
+elif mode == "My Journal":
+    st.header("My Journal")
+    st.subheader("Songs I lived with")
 
-    # Reveal section
-    if st.session_state.fib_revealed:
-        ans = st.session_state.fib_round["answer_word"]
-        title = st.session_state.fib_round["title"]
-        artist = st.session_state.fib_round["artist"]
-        full_line = st.session_state.fib_round["full_line"]
+    # download csv, because csv looks best for this type of info.
+    entries = get_entries()
+    if entries:
+        csv_data = "ID,Song,Artist,Opinion,Mood,Note,Reminds Me Of,Is Favorite,Created At\n"
+        for entry in entries:
+            csv_data += ",".join(str(e) for e in entry) + "\n"
+        st.download_button("Download CSV", data=csv_data, file_name="my_daily_soundtrack.csv", mime="text/csv")
+    else:
+        st.info("No entries to download.")
+        
+    entries = get_entries()
+    show_favorites = st.checkbox("Show favorites only")
+    if show_favorites:
+        entries = [entry for entry in entries if entry[7]]
+    if not entries:
+        st.info("No journal entries yet.")
+    else:
+        for entry in entries:
+            entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
+            st.caption(created_at)
+            star = "★ " if is_favorite else ""
+            st.markdown(f"### {star}{song} by {artist}")
+            if mood:
+                st.markdown(f"**Mood:** {mood}")
+            st.markdown("**Why it mattered:**")
+            st.markdown(f"> {opinion}")
+            if reminds_me_of:
+                st.markdown(f"_Reminds me of: {reminds_me_of}_")
+            if note:
+                st.markdown(f"**Memory:** {note}")
+            st.markdown("---")
+    
+            
+    
+    st.subheader("Edit an Entry")
+    edit_id = st.number_input("Enter the ID of the entry to edit", min_value=1, step=1)
+    edit_song = st.text_input("New song")
+    edit_artist = st.text_input("New artist")
+    edit_opinion = st.text_area("Why did this song matter?")
+    edit_mood = st.selectbox("New mood", ["Happy", "Heavy", "Hopeful", "Calm", "Lonely", "Nostalgic", "Restless"])
+    edit_reminds_me_of = st.text_input("New person this song reminds you of (optional)")
+    edit_note = st.text_area("New memory (optional)")
+    edit_is_favorite = st.checkbox("Star this song")
 
-        st.info(f"Missing word: {ans}")
-        st.write(full_line)
-        st.caption(f"{title} - {artist}")
+    if st.button("Update Entry"):
+        if edit_song and edit_artist and edit_opinion:
+            edit_entry(edit_id, edit_song, edit_artist, edit_opinion, edit_mood, edit_note, edit_reminds_me_of, int(edit_is_favorite))
+            st.success(f"Updated entry with ID {edit_id}.")
+        else:
+            st.error("Please fill in all fields before updating.")
+    
+    delete_id = st.number_input("Enter the ID of the entry to delete", min_value=1, step=1)
+    
+    
+
+    
+    if st.button("Delete Entry"):
+        delete_entry(delete_id)
+        st.success(f"Deleted entry with ID {delete_id} from your journal.")
+
+    if st.button("Delete All Entries"):
+        delete_entry(None)
+        st.success("Deleted all journal entries.")
+
+# Calendar View (Read)
+elif mode == "Calendar View":
+    st.header("Calendar View")
+    # add streak counter, because why not, it is a nice feature to have and it is not that hard to implement, I just need to check how many consecutive days the user has added entries for, and then display that number in a nice way.
+    
+    streak = get_streak()
+    streak_label = "day" if streak == 1 else "days"
+    st.metric("Current streak", f"{streak} {streak_label}")
+    # cannot be edited (that is a feature and it would be a nightmare to implement it, so I will just make it non editable)
+    calender_options = {
+        "editable": "false",
+        "selectable": "true",
+        "headerToolbar": {
+            "left": "today prev,next",
+            "center": "title",
+            "right": "dayGridMonth,dayGridWeek,dayGridDay",
+        },
+        "initialView": "dayGridMonth",
+    }
+    mood_colors = {
+        "Happy": "#facc15",
+        "Heavy": "#64748b",
+        "Hopeful": "#22c55e",
+        "Calm": "#38bdf8",
+        "Lonely": "#818cf8",
+        "Nostalgic": "#f59e0b",
+        "Restless": "#ef4444",
+    }
+    entries = get_entries()
+    calendar_events = []
+    for entry in entries:
+        entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at = entry
+        calendar_events.append({
+            "id": entry_id,
+            "title": f"{'★ ' if is_favorite else ''}{mood}: {song}" if mood else f"{'★ ' if is_favorite else ''}{song}",
+            "start": created_at,
+            "description": opinion,
+            "color": mood_colors.get(mood, "#a78bfa"),
+        })
+
+
+    state = calendar(
+    options=calender_options,
+    events=calendar_events,
+    key="my_calendar",
+    )
+
+    # make it appearr
+    st.write(state)
+

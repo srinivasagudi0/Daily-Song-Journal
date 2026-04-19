@@ -1,252 +1,119 @@
-"""
-Utility functions and small datasets used by the Streamlit music games.
+import sqlite3
+from datetime import datetime, timedelta
 
-Notes:
-- No copyrighted lyrics are included.
-- "Guess the Song" uses clue-based rounds.
-- Fill‑in‑the‑blank uses traditional/public‑domain lines.
-"""
+db = "song_journal.db"
 
-import json
-import os
-import random
-import re
-from collections import Counter
-from typing import Any, Dict, List
-
-
-# ---------------------------------------------------------------------------
-#  Small offline datasets
-# ---------------------------------------------------------------------------
-
-# These fallback rounds keep the game playable without an API key.
-FALLBACK_ROUNDS = [
-    {
-        "clue": "Clues:\n1) 1985 synth‑pop hit.\n2) Rotoscoped music video.\n3) Big falsetto chorus.",
-        "answer_title": "Take On Me",
-        "answer_artist": "a‑ha",
-    },
-    {
-        "clue": "Clues:\n1) Late 70s rock anthem.\n2) Stomp‑stomp‑clap.\n3) Played at sports games.",
-        "answer_title": "We Will Rock You",
-        "answer_artist": "Queen",
-    },
-    {
-        "clue": "Clues:\n1) Early 90s grunge.\n2) Quiet‑loud‑quiet.\n3) Youth‑culture title.",
-        "answer_title": "Smells Like Teen Spirit",
-        "answer_artist": "Nirvana",
-    },
-    {
-        "clue": "Clues:\n1) Early 80s pop.\n2) Linked to the moonwalk.\n3) Title is a woman's name.",
-        "answer_title": "Billie Jean",
-        "answer_artist": "Michael Jackson",
-    },
-    {
-        "clue": "Clues:\n1) 2014 funk‑pop.\n2) Retro vocals + DJ producer.\n3) Suits + dancing video.",
-        "answer_title": "Uptown Funk",
-        "answer_artist": "Mark Ronson ft. Bruno Mars",
-    },
-    {
-        "clue": "Clues:\n1) 2015 pop hit.\n2) Marimba‑like hook.\n3) British singer‑songwriter.",
-        "answer_title": "Shape of You",
-        "answer_artist": "Ed Sheeran",
-    },
-    {
-        "clue": "Clues:\n1) Classic singalong.\n2) Chorus names a woman.\n3) Played at baseball games.",
-        "answer_title": "Sweet Caroline",
-        "answer_artist": "Neil Diamond",
-    },
-]
-
-# Regex for extracting words
-_WORD_RE = re.compile(r"[A-Za-z']+")
-
-# Public‑domain lyric lines for the fill‑blank game.
-FILL_BLANK_ITEMS = [
-    {"title": "Twinkle, Twinkle, Little Star", "artist": "Traditional",
-     "line": "Twinkle, twinkle, little star, how I wonder what you are"},
-    {"title": "Mary Had a Little Lamb", "artist": "Traditional",
-     "line": "Mary had a little lamb, its fleece was white as snow"},
-    {"title": "Row, Row, Row Your Boat", "artist": "Traditional",
-     "line": "Row, row, row your boat, gently down the stream"},
-    {"title": "London Bridge", "artist": "Traditional",
-     "line": "London Bridge is falling down, falling down, falling down"},
-    {"title": "Amazing Grace", "artist": "John Newton",
-     "line": "Amazing grace! how sweet the sound, that saved a wretch like me"},
-    {"title": "Auld Lang Syne", "artist": "Traditional (Robert Burns)",
-     "line": "Should auld acquaintance be forgot, and never brought to mind"},
-    {"title": "Oh! Susanna", "artist": "Stephen Foster",
-     "line": "Oh! Susanna, don't you cry for me"},
-    {"title": "Yankee Doodle", "artist": "Traditional",
-     "line": "Yankee Doodle went to town, riding on a pony"},
-]
-
-
-# ---------------------------------------------------------------------------
-#  Normalization helpers
-# ---------------------------------------------------------------------------
-
-def normalize_guess(text: str) -> str:
-    """Lowercase, trim, and remove punctuation so guesses are easier to match."""
-    cleaned = text.strip().lower()
-    cleaned = re.sub(r"[^a-z0-9\s]", "", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned
-
-
-def is_correct_word_guess(guess: str, answer_word: str) -> bool:
-    """Simple exact match after normalization."""
-    return normalize_guess(guess) == normalize_guess(answer_word)
-
-
-def is_correct_guess(guess: str, answer_title: str) -> bool:
-    """
-    More flexible matching for song titles:
-    - exact match
-    - substring match (helps with “that take on me song”)
-    """
-    g = normalize_guess(guess)
-    a = normalize_guess(answer_title)
-    if not g or not a:
-        return False
-    return g == a or g in a or a in g
-
-
-# ---------------------------------------------------------------------------
-#  Fill‑in‑the‑blank round generator
-# ---------------------------------------------------------------------------
-
-def _pick_blank_word(line: str) -> str:
-    """Internal helper to choose a word to blank out."""
-    words = _WORD_RE.findall(line)
-    letter_words = [w for w in words if re.fullmatch(r"[A-Za-z]+", w or "")]
-    if not letter_words:
-        return ""
-
-    counts = Counter(w.lower() for w in letter_words)
-
-    # Prefer unique, longer words
-    candidates = [w for w in letter_words if len(w) >= 4 and counts[w.lower()] == 1]
-    if not candidates:
-        candidates = [w for w in letter_words if counts[w.lower()] == 1] or letter_words
-
-    return random.choice(candidates)
-
-
-def get_fill_blank_round() -> Dict[str, Any]:
-    """Build a fill‑in‑the‑blank question from the public‑domain list."""
-    item = random.choice(FILL_BLANK_ITEMS)
-    line = item["line"]
-
-    answer_word = _pick_blank_word(line)
-    if not answer_word:
-        # Rare fallback
-        return {
-            "prompt_line": line,
-            "answer_word": "",
-            "choices": [],
-            "title": item["title"],
-            "artist": item["artist"],
-            "full_line": line,
-        }
-
-    # Replace the chosen word with a blank
-    match = re.search(rf"\b{re.escape(answer_word)}\b", line, flags=re.IGNORECASE)
-    if not match:
-        return {
-            "prompt_line": line,
-            "answer_word": "",
-            "choices": [],
-            "title": item["title"],
-            "artist": item["artist"],
-            "full_line": line,
-        }
-
-    prompt_line = f"{line[:match.start()]}____{line[match.end():]}"
-
-    # Build distractor pool
-    pool: List[str] = []
-    for other in FILL_BLANK_ITEMS:
-        pool.extend(_WORD_RE.findall(other["line"]))
-
-    pool = [w for w in pool if normalize_guess(w) != normalize_guess(answer_word)]
-    pool = list(dict.fromkeys(pool))  # de‑dupe
-
-    distractors = random.sample(pool, k=min(3, len(pool)))
-    choices = distractors + [answer_word]
-    random.shuffle(choices)
-
-    return {
-        "prompt_line": prompt_line,
-        "answer_word": answer_word,
-        "choices": choices,
-        "title": item["title"],
-        "artist": item["artist"],
-        "full_line": line,
-    }
-
-
-# ---------------------------------------------------------------------------
-#  Guess‑the‑song round generator
-# ---------------------------------------------------------------------------
-
-def get_song_round() -> Dict[str, str]:
-    """
-    Generate a clue‑based round.
-    Uses OpenAI if available; otherwise falls back to the offline list.
-    """
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return random.choice(FALLBACK_ROUNDS)
-
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-    system_prompt = (
-        "You create short clues for a 'Guess the Song' game.\n"
-        "- No lyrics.\n"
-        "- No title or artist leaks.\n"
-        "- Return strict JSON: clue, answer_title, answer_artist.\n"
-        "- Clue must contain 3 numbered hints."
-    )
-
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "Pick a well‑known song and generate the JSON."},
-            ],
-            temperature=1,
+def init_db():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS journals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song TEXT NOT NULL,
+            artist TEXT NOT NULL,
+            opinion TEXT NOT NULL,
+            mood TEXT,
+            note TEXT,
+            reminds_me_of TEXT,
+            is_favorite INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    ''')
+    existing_columns = [row[1] for row in c.execute("PRAGMA table_info(journals)")]
+    if "mood" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN mood TEXT")
+    if "note" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN note TEXT")
+    if "reminds_me_of" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN reminds_me_of TEXT")
+    if "is_favorite" not in existing_columns:
+        c.execute("ALTER TABLE journals ADD COLUMN is_favorite INTEGER DEFAULT 0")
+        if "is_faviorite" in existing_columns:
+            c.execute("UPDATE journals SET is_favorite = COALESCE(is_faviorite, 0)")
+    conn.commit()
+    conn.close()
 
-        raw = (response.choices[0].message.content or "").strip()
-        data = json.loads(raw)
+def add_entry(song, artist, opinion, mood, note, reminds_me_of, is_favorite):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO journals (song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (song, artist, opinion, mood, note, reminds_me_of, is_favorite, sqlite3.datetime.datetime.now()))
+    conn.commit()
+    conn.close()
 
-        clue = str(data.get("clue", "")).strip()
-        title = str(data.get("answer_title", "")).strip()
-        artist = str(data.get("answer_artist", "")).strip()
+def get_entries():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        SELECT id, song, artist, opinion, mood, note, reminds_me_of, is_favorite, created_at
+        FROM journals
+        ORDER BY created_at DESC
+    ''')
+    entries = c.fetchall()
+    conn.close()
+    return entries
 
-        if not clue or not title:
-            raise ValueError("Missing fields")
+def delete_entry(entry_id):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
 
-        # Quick leak check
-        low = clue.lower()
-        if title.lower() in low or artist.lower() in low:
-            raise ValueError("Clue leaked answer")
+    # No ID means the user wants a clean slate.
+    if entry_id is None:
+        c.execute("DELETE FROM journals")
+    else:
+        c.execute("DELETE FROM journals WHERE id = ?", (entry_id,))
 
-        return {"clue": clue, "answer_title": title, "answer_artist": artist}
+    conn.commit()
+    conn.close()
 
-    except Exception:
-        return random.choice(FALLBACK_ROUNDS)
+def edit_entry(entry_id, song, artist, opinion, mood, note, reminds_me_of, is_favorite):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute(
+        '''
+        UPDATE journals
+        SET song = ?, artist = ?, opinion = ?, mood = ?, note = ?, reminds_me_of = ?, is_favorite = ?
+        WHERE id = ?
+        ''',
+        (song, artist, opinion, mood, note, reminds_me_of, is_favorite, entry_id)
+    )
+    conn.commit()
+    conn.close()
 
+def get_streak():
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute('''
+        SELECT created_at
+        FROM journals
+        ORDER BY created_at DESC
+    ''')
+    rows = c.fetchall()
+    conn.close()
 
-# ---------------------------------------------------------------------------
-#  Legacy compatibility
-# ---------------------------------------------------------------------------
+    logged_dates = {
+        datetime.fromisoformat(created_at).date()
+        for (created_at,) in rows
+        if created_at
+    }
+    if not logged_dates:
+        return 0
 
-def get_random_song() -> str:
-    """Old helper kept for older versions of the UI."""
-    return get_song_round()["clue"]
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+
+    if today in logged_dates:
+        current_day = today
+    elif yesterday in logged_dates:
+        current_day = yesterday
+    else:
+        return 0
+
+    streak = 0
+    while current_day in logged_dates:
+        streak += 1
+        current_day -= timedelta(days=1)
+
+    return streak
